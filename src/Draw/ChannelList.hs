@@ -54,6 +54,7 @@ renderChannelList :: ChatState -> Widget Name
 renderChannelList st =
     viewport ChannelList Vertical body
     where
+        cm = getColorMode st
         teamHeader = hCenter $
                      withDefAttr clientEmphAttr $
                      txt $ "Team: " <> teamNameStr
@@ -61,7 +62,7 @@ renderChannelList st =
         me = userById (myUserId st) st
         statusSigil = maybe ' ' userSigilFromInfo me
         selfHeader = hCenter $
-                     colorUsername myUsername_ myUsername_ (T.singleton statusSigil <> " " <> userSigil <> myUsername_)
+                     colorUsername cm myUsername_ myUsername_ (T.singleton statusSigil <> " " <> userSigil <> myUsername_)
         teamNameStr = sanitizeUserText $ MM.teamDisplayName $ st^.csMyTeam
         body = case appMode st of
             ChannelSelect ->
@@ -79,7 +80,7 @@ renderChannelList st =
                 vBox $
                 teamHeader :
                 selfHeader :
-                (renderChannelListGroup st (\s e -> renderChannelListEntry myUsername_ $ mkChannelEntryData s e) <$>
+                (renderChannelListGroup st (\s e -> renderChannelListEntry cm myUsername_ $ mkChannelEntryData s e) <$>
                     Z.toList (st^.csFocus))
 
 renderChannelListGroupHeading :: ChannelListGroup -> Bool -> Widget Name
@@ -144,8 +145,8 @@ mkChannelEntryData st e =
 
 -- | Render an individual Channel List entry (in Normal mode) with
 -- appropriate visual decorations.
-renderChannelListEntry :: Text -> ChannelListEntryData -> (Bool, Widget Name)
-renderChannelListEntry myUName entry = (entryHasUnread entry, body)
+renderChannelListEntry :: ColorMode -> Text -> ChannelListEntryData -> (Bool, Widget Name)
+renderChannelListEntry cm myUName entry = (entryHasUnread entry, body)
     where
     body = decorate $ decorateEntry entry $ decorateMentions $ padRight Max $
            entryWidget $ entrySigil entry <> entryLabel entry
@@ -158,7 +159,7 @@ renderChannelListEntry myUName entry = (entryHasUnread entry, body)
                   | otherwise -> id
     entryWidget = case entryUserStatus entry of
                     Just Offline -> withDefAttr clientMessageAttr . txt
-                    Just _       -> colorUsername myUName (entryLabel entry)
+                    Just _       -> colorUsername cm myUName (entryLabel entry)
                     Nothing      -> txt
     decorateMentions
       | entryMentions entry > 9 =

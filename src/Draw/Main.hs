@@ -258,6 +258,7 @@ renderUserCommandBox st hs =
                           , mdShowReactions     = True
                           , mdMessageWidthLimit = Nothing
                           , mdMyUsername        = myUsername st
+                          , mdColorMode         = getColorMode st
                           }
                         ]
             _ -> emptyWidget
@@ -317,7 +318,9 @@ renderChannelHeader st hs chan =
         newlineToSpace c = c
         channelNamePair = mkChannelName (chan^.ccInfo) <> " - " <> (chan^.ccInfo.cdDisplayName)
 
-    in renderText' (myUsername st)
+        cm = getColorMode st
+
+    in renderText' cm (myUsername st)
          hs
          (T.map newlineToSpace (channelNameString <> maybeTopic))
 
@@ -567,6 +570,7 @@ inputPreview st hs | not $ st^.csShowMessagePreview = emptyWidget
                                   , mdShowReactions     = True
                                   , mdMessageWidthLimit = Nothing
                                   , mdMyUsername        = myUsername st
+                                  , mdColorMode         = getColorMode st
                                   }
                  in (maybePreviewViewport msgPreview) <=>
                     hBorderWithLabel (withDefAttr clientEmphAttr $ str "[Preview ↑]")
@@ -626,8 +630,10 @@ mainInterface st =
                      , txt " to manage)"
                      ]
 
+    cm = getColorMode st
+
     showTypingUsers =
-        let format = renderText' (myUsername st) hs
+        let format = renderText' cm (myUsername st) hs
         in case allTypingUsers (st^.csCurrentChannel.ccInfo.cdTypingUsers) of
             [] -> emptyWidget
             [uId] | Just un <- usernameForUserId uId st ->

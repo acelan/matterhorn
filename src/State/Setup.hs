@@ -132,23 +132,24 @@ setupState mkVty mLogLocation config = do
       themeName = case configTheme config of
           Nothing -> internalThemeName defaultTheme
           Just t -> t
-      baseTheme = internalTheme $ fromMaybe defaultTheme (lookupTheme themeName)
+      baseTheme = fromMaybe defaultTheme (lookupTheme themeName)
+      brickTheme = internalTheme baseTheme
 
   -- Did the configuration specify a theme customization file? If so,
   -- load it and customize the theme.
   custTheme <- case configThemeCustomizationFile config of
-      Nothing -> return baseTheme
+      Nothing -> return brickTheme
       Just path ->
           -- If we have no configuration path (i.e. we used the default
           -- config) then ignore theme customization.
           let pathStr = T.unpack path
           in if isRelative pathStr && isNothing (configAbsPath config)
-             then return baseTheme
+             then return brickTheme
              else do
                  let absPath = if isRelative pathStr
                                then (dropFileName $ fromJust $ configAbsPath config) </> pathStr
                                else pathStr
-                 result <- loadCustomizations absPath baseTheme
+                 result <- loadCustomizations absPath brickTheme
                  case result of
                      Left e -> do
                          putStrLn $ "Error loading theme customization from " <> show absPath <> ": " <> e
@@ -171,6 +172,7 @@ setupState mkVty mLogLocation config = do
                          , _crSubprocessLog       = slc
                          , _crWebsocketActionChan = wac
                          , _crTheme               = themeToAttrMap custTheme
+                         , _crThemeColorMode      = internalThemeColorMode baseTheme
                          , _crStatusUpdateChan    = userStatusChan
                          , _crConfiguration       = config
                          , _crFlaggedPosts        = mempty

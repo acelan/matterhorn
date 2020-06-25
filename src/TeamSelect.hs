@@ -19,6 +19,7 @@ import qualified Data.Text as T
 import           Network.Mattermost.Types
 
 import           Markdown
+import           Types ( ColorMode(..) )
 import           Types.Common
 
 
@@ -68,7 +69,7 @@ teamSelect st =
          , txt " "
          , border theList
          , txt " "
-         , renderText "Press Enter to select a team and connect or Esc to exit."
+         , renderText ColorMode16 "Press Enter to select a team and connect or Esc to exit."
          ]
     where
     theList = renderList renderTeamItem True (appList st)

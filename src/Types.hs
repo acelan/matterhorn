@@ -19,6 +19,7 @@ module Types
   , MHError(..)
   , AttachmentData(..)
   , CPUUsagePolicy(..)
+  , ColorMode(..)
   , tabbedWindow
   , getCurrentTabbedWindowEntry
   , tabbedWindowNextTab
@@ -153,6 +154,7 @@ module Types
   , crUserPreferences
   , crEventQueue
   , crTheme
+  , crThemeColorMode
   , crStatusUpdateChan
   , crSubprocessLog
   , crWebsocketActionChan
@@ -166,6 +168,8 @@ module Types
   , crEmoji
   , getSession
   , getResourceSession
+
+  , getColorMode
 
   , specialUserMentions
 
@@ -452,6 +456,17 @@ data CPUUsagePolicy =
     -- ^ Permit the usage of multiple CPUs (the exact number is
     -- determined by the application).
     deriving (Eq, Show)
+
+-- | The color palette used by the active theme.
+data ColorMode =
+    ColorMode16
+    -- ^ Choose colors from the 16-color palette.
+    | ColorMode256
+    -- ^ Choose colors from the 256-color palette.
+    deriving (Eq, Show)
+
+getColorMode :: ChatState -> ColorMode
+getColorMode = _crThemeColorMode . _csResources
 
 -- | The state of the UI diagnostic indicator for the async worker
 -- thread.
@@ -857,6 +872,7 @@ data ChatResources =
                   , _crSubprocessLog       :: STM.TChan ProgramOutput
                   , _crWebsocketActionChan :: STM.TChan WebsocketAction
                   , _crTheme               :: AttrMap
+                  , _crThemeColorMode      :: ColorMode
                   , _crStatusUpdateChan    :: STM.TChan [UserId]
                   , _crConfiguration       :: Config
                   , _crFlaggedPosts        :: Set PostId

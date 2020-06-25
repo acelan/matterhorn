@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Themes
   ( InternalTheme(..)
+  , ColorMode(..)
 
   , defaultTheme
   , internalThemes
@@ -73,7 +74,7 @@ import           Graphics.Vty
 import qualified Skylighting.Styles as Sky
 import           Skylighting.Types ( TokenType(..) )
 
-import           Types ( specialUserMentions )
+import           Types ( specialUserMentions, ColorMode(..) )
 
 
 helpAttr :: AttrName
@@ -202,6 +203,7 @@ messageSelectStatusAttr = "messageSelectStatus"
 data InternalTheme =
     InternalTheme { internalThemeName :: Text
                   , internalTheme     :: Theme
+                  , internalThemeColorMode :: ColorMode
                   }
 
 lookupTheme :: Text -> Maybe InternalTheme
@@ -209,8 +211,10 @@ lookupTheme n = find ((== n) . internalThemeName) internalThemes
 
 internalThemes :: [InternalTheme]
 internalThemes = validateInternalTheme <$>
-    [ darkColorTheme
-    , lightColorTheme
+    [ dark16ColorTheme
+    , light16ColorTheme
+    , dark256ColorTheme
+    , light256ColorTheme
     ]
 
 validateInternalTheme :: InternalTheme -> InternalTheme
@@ -227,17 +231,26 @@ undocumentedAttrNames t =
     in filter noDocs (M.keys $ themeDefaultMapping t)
 
 defaultTheme :: InternalTheme
-defaultTheme = darkColorTheme
+defaultTheme = dark16ColorTheme
 
-lightColorTheme :: InternalTheme
-lightColorTheme = InternalTheme name theme
+light16ColorTheme :: InternalTheme
+light16ColorTheme = InternalTheme name theme cm
     where
-        theme = newTheme def lightAttrs
+        theme = newTheme def (lightAttrs cm)
+        cm = ColorMode16
         name = "builtin:light"
         def = black `on` white
 
-lightAttrs :: [(AttrName, Attr)]
-lightAttrs =
+light256ColorTheme :: InternalTheme
+light256ColorTheme = InternalTheme name theme cm
+    where
+        theme = newTheme def (lightAttrs cm)
+        cm = ColorMode256
+        name = "builtin:light256"
+        def = black `on` white
+
+lightAttrs :: ColorMode -> [(AttrName, Attr)]
+lightAttrs colorMode =
     let sty = Sky.kate
     in [ (timeAttr,                         fg black)
        , (currentUserAttr,                  defAttr `withStyle` bold)
@@ -288,11 +301,11 @@ lightAttrs =
        , (FB.fileBrowserSymbolicLinkAttr,   fg cyan)
        , (FB.fileBrowserUnixSocketAttr,     fg red)
        ] <>
-       ((\(i, a) -> (usernameAttr i, a)) <$> zip [0..] usernameColors256ColorMode) <>
+       ((\(i, a) -> (usernameAttr i, a)) <$> zip [0..] (usernameColors colorMode)) <>
        (filter skipBaseCodeblockAttr $ attrMappingsForStyle sty)
 
-darkAttrs :: [(AttrName, Attr)]
-darkAttrs =
+darkAttrs :: ColorMode -> [(AttrName, Attr)]
+darkAttrs colorMode =
   let sty = Sky.espresso
   in [ (timeAttr,                         fg white)
      , (currentUserAttr,                  defAttr `withStyle` bold)
@@ -343,17 +356,26 @@ darkAttrs =
      , (FB.fileBrowserSymbolicLinkAttr,   fg cyan)
      , (FB.fileBrowserUnixSocketAttr,     fg red)
      ] <>
-     ((\(i, a) -> (usernameAttr i, a)) <$> zip [0..] usernameColors256ColorMode) <>
+     ((\(i, a) -> (usernameAttr i, a)) <$> zip [0..] (usernameColors colorMode)) <>
      (filter skipBaseCodeblockAttr $ attrMappingsForStyle sty)
 
 skipBaseCodeblockAttr :: (AttrName, Attr) -> Bool
 skipBaseCodeblockAttr = ((/= highlightedCodeBlockAttr) . fst)
 
-darkColorTheme :: InternalTheme
-darkColorTheme = InternalTheme name theme
+dark16ColorTheme :: InternalTheme
+dark16ColorTheme = InternalTheme name theme cm
     where
-        theme = newTheme def darkAttrs
+        theme = newTheme def (darkAttrs cm)
         name = "builtin:dark"
+        cm = ColorMode16
+        def = defAttr
+
+dark256ColorTheme :: InternalTheme
+dark256ColorTheme = InternalTheme name theme cm
+    where
+        theme = newTheme def (darkAttrs cm)
+        name = "builtin:dark256"
+        cm = ColorMode256
         def = defAttr
 
 usernameAttr :: Int -> AttrName
@@ -379,7 +401,10 @@ usernameAttr i = "username" <> (attrName $ show i)
 --
 -- The third argument is allowed to vary from the second since sometimes
 -- we call this with the user's status sigil as the third argument.
-colorUsername :: Text
+colorUsername :: ColorMode
+              -- ^ The color mode to use when choosing username
+              -- attributes.
+              -> Text
               -- ^ The username for the user currently running
               -- Matterhorn
               -> Text
@@ -387,12 +412,12 @@ colorUsername :: Text
               -> Text
               -- ^ The text to render
               -> Widget a
-colorUsername current username display =
+colorUsername colorMode current username display =
     let normalizedUsername = T.toLower username
         aName = if normalizedUsername `elem` specialUserMentions
                 then clientEmphAttr
                 else usernameAttr h
-        h = hash normalizedUsername `mod` length usernameColors256ColorMode
+        h = hash normalizedUsername `mod` numUsernameHashBuckets colorMode
         maybeWithCurrentAttr = if current == username
                                then withAttr currentUserAttr
                                else id
@@ -400,14 +425,20 @@ colorUsername current username display =
        maybeWithCurrentAttr $
        txt (display)
 
--- | The colors to use when choosing username colors in 256-color mode.
+numUsernameHashBuckets :: ColorMode -> Int
+numUsernameHashBuckets = length . usernameColors
+
+maxUsernameColors :: Int
+maxUsernameColors = numUsernameHashBuckets ColorMode256
+
+-- | The default colors to use when choosing username colors.
 --
--- These colors were chosen to have certain properties (mostly pairwise
--- high contrast) and were taken from
+-- The 256-color palette entries were chosen to have certain properties
+-- (mostly pairwise high contrast) and were taken from
 --
 -- http://godsnotwheregodsnot.blogspot.com/2012/09/color-distribution-methodology.html
-usernameColors256ColorMode :: [Attr]
-usernameColors256ColorMode =
+usernameColors :: ColorMode -> [Attr]
+usernameColors ColorMode256 =
     let mkColor (r, g, b) = fg $ rgbColor r g b
         colors :: [(Integer, Integer, Integer)]
         colors = [ (1, 0, 103)
@@ -474,11 +505,8 @@ usernameColors256ColorMode =
                  , (255, 110, 65)
                  , (232, 94, 190)
                  ]
-    in mkColor <$> colors
-
--- | The colors to use when choosing username colors in 16-color mode.
-usernameColors16ColorMode :: [Attr]
-usernameColors16ColorMode =
+    in usernameColors ColorMode16 <> (mkColor <$> colors)
+usernameColors ColorMode16 =
     [ fg red
     , fg green
     , fg yellow
@@ -753,5 +781,5 @@ themeDocs = ThemeDocumentation $ M.fromList $
       , "Attribute for the username of the user running Matterhorn"
       )
     ] <> [ (usernameAttr i, T.pack $ "Username color " <> show i)
-         | i <- [0..(length usernameColors256ColorMode)-1]
+         | i <- [0..maxUsernameColors-1]
          ]

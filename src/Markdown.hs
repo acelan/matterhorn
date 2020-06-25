@@ -144,6 +144,8 @@ data MessageData =
                 -- rendered using the context's width.
                 , mdMyUsername :: Text
                 -- ^ The username of the user running Matterhorn.
+                , mdColorMode :: ColorMode
+                -- ^ Theme color mode
                 }
 
 -- | renderMessage performs markdown rendering of the specified message.
@@ -158,13 +160,13 @@ renderMessage md@MessageData { mdMessage = msg, .. } =
             | isEmote msg ->
                 [ B.withDefAttr pinnedMessageIndicatorAttr $ B.txt $ if msg^.mPinned then "[PIN]" else ""
                 , B.txt $ (if msg^.mFlagged then "[!] " else "") <> "*"
-                , colorUsername mdMyUsername un un
+                , colorUsername mdColorMode mdMyUsername un un
                 , botElem
                 , B.txt " "
                 ]
             | otherwise ->
                 [ B.withDefAttr pinnedMessageIndicatorAttr $ B.txt $ if msg^.mPinned then "[PIN] " else ""
-                , colorUsername mdMyUsername un un
+                , colorUsername mdColorMode mdMyUsername un un
                 , botElem
                 , B.txt $ (if msg^.mFlagged then "[!]" else "") <> ": "
                 ]
@@ -247,7 +249,7 @@ renderMessage md@MessageData { mdMessage = msg, .. } =
         multiLnLayout hs w nameElems bs =
             if mdIndentBlocks
                then vBox [ hBox nameElems
-                         , hBox [B.txt "  ", renderMarkdown mdMyUsername hs ((subtract 2) <$> w) bs]
+                         , hBox [B.txt "  ", renderMarkdown mdColorMode mdMyUsername hs ((subtract 2) <$> w) bs]
                          ]
                else nameNextToMessage hs w nameElems bs
 
@@ -255,7 +257,7 @@ renderMessage md@MessageData { mdMessage = msg, .. } =
             Widget Fixed Fixed $ do
                 nameResult <- render $ hBox nameElems
                 let newW = subtract (V.imageWidth (nameResult^.imageL)) <$> w
-                render $ hBox [raw (nameResult^.imageL), renderMarkdown mdMyUsername hs newW bs]
+                render $ hBox [raw (nameResult^.imageL), renderMarkdown mdColorMode mdMyUsername hs newW bs]
 
         breakCheck C.LineBreak = True
         breakCheck C.SoftBreak = True
@@ -277,9 +279,9 @@ cursorSentinel :: Char
 cursorSentinel = '‸'
 
 -- Render markdown with username highlighting
-renderMarkdown :: Text -> HighlightSet -> Maybe Int -> Blocks -> Widget a
-renderMarkdown curUser hSet w =
-  B.vBox . toList . fmap (blockToWidget curUser hSet w) . addBlankLines
+renderMarkdown :: ColorMode -> Text -> HighlightSet -> Maybe Int -> Blocks -> Widget a
+renderMarkdown cm curUser hSet w =
+  B.vBox . toList . fmap (blockToWidget cm curUser hSet w) . addBlankLines
 
 -- Add blank lines only between adjacent elements of the same type, to
 -- save space
@@ -304,11 +306,11 @@ addBlankLines = go' . viewl
         blank = C.Para (S.singleton (C.Str " "))
 
 -- Render text to markdown without username highlighting
-renderText :: Text -> Widget a
-renderText txt = renderText' "" emptyHSet txt
+renderText :: ColorMode -> Text -> Widget a
+renderText cm txt = renderText' cm "" emptyHSet txt
 
-renderText' :: Text -> HighlightSet -> Text -> Widget a
-renderText' curUser hSet txt = renderMarkdown curUser hSet Nothing bs
+renderText' :: ColorMode -> Text -> HighlightSet -> Text -> Widget a
+renderText' cm curUser hSet txt = renderMarkdown cm curUser hSet Nothing bs
   where C.Doc _ bs = C.markdown C.def txt
 
 vBox :: F.Foldable f => f (Widget a) -> Widget a
@@ -324,26 +326,26 @@ maybeHLimit :: Maybe Int -> Widget a -> Widget a
 maybeHLimit Nothing w = w
 maybeHLimit (Just i) w = hLimit i w
 
-blockToWidget :: Text -> HighlightSet -> Maybe Int -> Block -> Widget a
-blockToWidget curUser hSet w (C.Para is) =
-    toInlineChunk curUser w is hSet
-blockToWidget curUser hSet w (C.Header n is) =
+blockToWidget :: ColorMode -> Text -> HighlightSet -> Maybe Int -> Block -> Widget a
+blockToWidget cm curUser hSet w (C.Para is) =
+    toInlineChunk cm curUser w is hSet
+blockToWidget cm curUser hSet w (C.Header n is) =
     B.withDefAttr clientHeaderAttr $
-      hBox [B.padRight (B.Pad 1) $ header n, toInlineChunk curUser (subtract 1 <$> w) is hSet]
-blockToWidget curUser hSet w (C.Blockquote is) =
+      hBox [B.padRight (B.Pad 1) $ header n, toInlineChunk cm curUser (subtract 1 <$> w) is hSet]
+blockToWidget cm curUser hSet w (C.Blockquote is) =
     maybeHLimit w $
-    addQuoting (vBox $ fmap (blockToWidget curUser hSet w) is)
-blockToWidget curUser hSet w (C.List _ l bs) =
+    addQuoting (vBox $ fmap (blockToWidget cm curUser hSet w) is)
+blockToWidget cm curUser hSet w (C.List _ l bs) =
     maybeHLimit w $
-    blocksToList curUser l w bs hSet
-blockToWidget _ hSet _ (C.CodeBlock ci tx) =
+    blocksToList cm curUser l w bs hSet
+blockToWidget _ _ hSet _ (C.CodeBlock ci tx) =
     let f = maybe rawCodeBlockToWidget (codeBlockToWidget (hSyntaxMap hSet)) mSyntax
         mSyntax = Sky.lookupSyntax (C.codeLang ci) (hSyntaxMap hSet)
     in f tx
-blockToWidget _ _ w (C.HtmlBlock txt) =
+blockToWidget _ _ _ w (C.HtmlBlock txt) =
     maybeHLimit w $
     textWithCursor txt
-blockToWidget _ _ w (C.HRule) =
+blockToWidget _ _ _ w (C.HRule) =
     maybeHLimit w $
     B.vLimit 1 (B.fill '*')
 
@@ -383,17 +385,17 @@ rawCodeBlockToWidget tx =
             expandEmpty s  = s
         in padding <+> (B.vBox $ textWithCursor <$> theLines)
 
-toInlineChunk :: Text -> Maybe Int -> Inlines -> HighlightSet -> Widget a
-toInlineChunk curUser w is hSet = B.Widget B.Fixed B.Fixed $ do
+toInlineChunk :: ColorMode -> Text -> Maybe Int -> Inlines -> HighlightSet -> Widget a
+toInlineChunk cm curUser w is hSet = B.Widget B.Fixed B.Fixed $ do
   ctx <- B.getContext
   let width = fromMaybe (ctx^.B.availWidthL) w
       fs    = toFragments hSet is
-      ws    = fmap (gatherWidgets curUser) (split width hSet fs)
+      ws    = fmap (gatherWidgets cm curUser) (split width hSet fs)
   B.render (vBox (fmap hBox ws))
 
-blocksToList :: Text -> ListType -> Maybe Int -> [Blocks] -> HighlightSet -> Widget a
-blocksToList curUser lt w bs hSet = vBox
-  [ B.txt i <+> (vBox (fmap (blockToWidget curUser hSet w) b))
+blocksToList :: ColorMode -> Text -> ListType -> Maybe Int -> [Blocks] -> HighlightSet -> Widget a
+blocksToList cm curUser lt w bs hSet = vBox
+  [ B.txt i <+> (vBox (fmap (blockToWidget cm curUser hSet w) b))
   | b <- bs | i <- is ]
   where is = case lt of
           C.Bullet _ -> repeat ("• ")
@@ -594,8 +596,8 @@ strOf f = case f of
 
 -- This finds adjacent string-ey fragments and concats them, so
 -- we can use fewer widgets
-gatherWidgets :: Text -> Seq Fragment -> Seq (Widget a)
-gatherWidgets curUser (viewl-> (Fragment frag style :< rs)) = go style (strOf frag) rs
+gatherWidgets :: ColorMode -> Text -> Seq Fragment -> Seq (Widget a)
+gatherWidgets cm curUser (viewl-> (Fragment frag style :< rs)) = go style (strOf frag) rs
   where go s t (viewl-> (Fragment f s' :< xs))
           | s == s' = go s (t <> strOf f) xs
         go s t xs =
@@ -610,17 +612,17 @@ gatherWidgets curUser (viewl-> (Fragment frag style :< rs)) = go style (strOf fr
                 Link l ->
                     B.hyperlink l $ B.withDefAttr urlAttr $ case frag of
                         TComplex fs ->
-                            hBox $ gatherWidgets curUser fs
+                            hBox $ gatherWidgets cm curUser fs
                         _ ->
                             rawText
                 Emoji  -> B.withDefAttr emojiAttr rawText
-                User u -> colorUsername curUser u t
+                User u -> colorUsername cm curUser u t
                 Channel -> B.withDefAttr channelNameAttr rawText
               widget
                 | T.any (== cursorSentinel) t = B.visible rawWidget
                 | otherwise = rawWidget
-          in widget <| gatherWidgets curUser xs
-gatherWidgets _ _ =
+          in widget <| gatherWidgets cm curUser xs
+gatherWidgets _ _ _ =
   S.empty
 
 textWithCursor :: Text -> Widget a

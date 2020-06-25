@@ -87,7 +87,7 @@ import           Types ( ConnectionInfo(..)
                        , ciPassword, ciUsername, ciHostname, ciUrlPath
                        , ciPort, ciType, AuthenticationException(..)
                        , LogManager, LogCategory(..), ioLogWithManager
-                       , ciAccessToken
+                       , ciAccessToken, ColorMode(..)
                        )
 
 
@@ -554,7 +554,7 @@ lastAttemptDisplay Nothing = emptyWidget
 lastAttemptDisplay (Just (AttemptSucceeded {})) = emptyWidget
 lastAttemptDisplay (Just (AttemptFailed e)) =
     hCenter $ hLimit uiWidth $
-    padTop (Pad 1) $ renderError $ renderText $
+    padTop (Pad 1) $ renderError $ renderText ColorMode16 $
     "Error: " <> renderAuthError e
 
 renderAuthError :: AuthenticationException -> Text
@@ -581,7 +581,7 @@ credentialsForm :: State -> Widget Name
 credentialsForm st =
     hCenter $ hLimit uiWidth $ vLimit 15 $
     border $
-    vBox [ renderText "Please enter your Mattermost credentials to log in."
+    vBox [ renderText ColorMode16 "Please enter your Mattermost credentials to log in."
          , padTop (Pad 1) $ renderForm (st^.loginForm)
-         , hCenter $ renderText "Press Enter to log in or Esc to exit."
+         , hCenter $ renderText ColorMode16 "Press Enter to log in or Esc to exit."
          ]

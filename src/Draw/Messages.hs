@@ -75,6 +75,7 @@ renderChatMessage st hs ind threadState renderTimeFunc msg =
               , mdShowReactions     = True
               , mdMessageWidthLimit = Nothing
               , mdMyUsername        = userUsername $ myUser st
+              , mdColorMode         = getColorMode st
               }
         fullMsg =
           case msg^.mUser of
