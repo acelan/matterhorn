@@ -204,6 +204,7 @@ data InternalTheme =
     InternalTheme { internalThemeName :: Text
                   , internalTheme     :: Theme
                   , internalThemeColorMode :: ColorMode
+                  , internalThemeDesc :: Text
                   }
 
 lookupTheme :: Text -> Maybe InternalTheme
@@ -234,20 +235,22 @@ defaultTheme :: InternalTheme
 defaultTheme = dark16ColorTheme
 
 light16ColorTheme :: InternalTheme
-light16ColorTheme = InternalTheme name theme cm
+light16ColorTheme = InternalTheme name theme cm desc
     where
         theme = newTheme def (lightAttrs cm)
         cm = ColorMode16
         name = "builtin:light"
         def = black `on` white
+        desc = "A 16-color theme for terminal windows with light background colors"
 
 light256ColorTheme :: InternalTheme
-light256ColorTheme = InternalTheme name theme cm
+light256ColorTheme = InternalTheme name theme cm desc
     where
         theme = newTheme def (lightAttrs cm)
         cm = ColorMode256
         name = "builtin:light256"
         def = black `on` white
+        desc = "Same as builtin:light, but with 256-color entries for usernames"
 
 lightAttrs :: ColorMode -> [(AttrName, Attr)]
 lightAttrs colorMode =
@@ -363,20 +366,22 @@ skipBaseCodeblockAttr :: (AttrName, Attr) -> Bool
 skipBaseCodeblockAttr = ((/= highlightedCodeBlockAttr) . fst)
 
 dark16ColorTheme :: InternalTheme
-dark16ColorTheme = InternalTheme name theme cm
+dark16ColorTheme = InternalTheme name theme cm desc
     where
         theme = newTheme def (darkAttrs cm)
         name = "builtin:dark"
         cm = ColorMode16
         def = defAttr
+        desc = "A 16-color theme for terminal windows with dark background colors"
 
 dark256ColorTheme :: InternalTheme
-dark256ColorTheme = InternalTheme name theme cm
+dark256ColorTheme = InternalTheme name theme cm desc
     where
         theme = newTheme def (darkAttrs cm)
         name = "builtin:dark256"
         cm = ColorMode256
         def = defAttr
+        desc = "Same as builtin:dark, but with 256-color entries for usernames"
 
 usernameAttr :: Int -> AttrName
 usernameAttr i = "username" <> (attrName $ show i)
