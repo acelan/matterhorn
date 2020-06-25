@@ -400,7 +400,9 @@ colorUsername current username display =
        maybeWithCurrentAttr $
        txt (display)
 
--- | These colors were chosen to have certain properties and were taken from
+-- | These colors were chosen to have certain properties (mostly
+-- pairwise high contrast) and were taken from
+--
 -- http://godsnotwheregodsnot.blogspot.com/2012/09/color-distribution-methodology.html
 usernameColors256ColorMode :: [Attr]
 usernameColors256ColorMode =
