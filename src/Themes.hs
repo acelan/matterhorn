@@ -400,8 +400,10 @@ colorUsername current username display =
        maybeWithCurrentAttr $
        txt (display)
 
--- | These colors were chosen to have certain properties (mostly
--- pairwise high contrast) and were taken from
+-- | The colors to use when choosing username colors in 256-color mode.
+--
+-- These colors were chosen to have certain properties (mostly pairwise
+-- high contrast) and were taken from
 --
 -- http://godsnotwheregodsnot.blogspot.com/2012/09/color-distribution-methodology.html
 usernameColors256ColorMode :: [Attr]
@@ -474,6 +476,7 @@ usernameColors256ColorMode =
                  ]
     in mkColor <$> colors
 
+-- | The colors to use when choosing username colors in 16-color mode.
 usernameColors16ColorMode :: [Attr]
 usernameColors16ColorMode =
     [ fg red
