@@ -1,6 +1,5 @@
 module State.Themes
-  (
-    listThemes
+  ( listThemes
   , setTheme
   )
 where
