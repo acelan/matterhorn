@@ -660,6 +660,30 @@ commandList =
   , Cmd "zzz" ("揉了揉雙眼, 打了個呵欠, 愛睏ㄍㄚˋ.")
     (LineArg "message") $
     \msg -> execMMCommand "me" ("揉了揉雙眼, 打了個呵欠, 愛睏ㄍㄚˋ.")
+  , Cmd "粗飽" ("給你一頓粗飽")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://truth.bahamut.com.tw/s01/202003/21759956f2167b397a460b7af09ed038.JPG (給你一頓粗飽)")
+  , Cmd "全都要" ("我全都要")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://cdn.discordapp.com/attachments/573901142652747783/719065625796018276/008b3f8fa5eaa506a46954db13bf2849.gif (我全都要)")
+  , Cmd "我拒絕" ("我拒絕")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://cdn.discordapp.com/attachments/465355733781839882/714731549794238505/image0.gif (我拒絕)")
+  , Cmd "在不在" ("在不在")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" (" " <> msg <> "https://media1.tenor.com/images/8a7981d6e8d3c56634446cb9c1dc5d21/tenor.gif (在不在)")
+  , Cmd "吃土" ("吃土 (窮)")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://media1.tenor.com/images/860367708182bcaf50332d2cbd6f87c3/tenor.gif (吃土)")
+  , Cmd "窮" ("吃土 (窮)")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://media1.tenor.com/images/860367708182bcaf50332d2cbd6f87c3/tenor.gif (吃土)")
+  , Cmd "no" ("no noooo")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://media1.tenor.com/images/44ce8109895aa2070c7aa70ca1d51504/tenor.gif (No Nooo)")
+  , Cmd "helpme" ("救我")
+    (LineArg "message") $
+    \msg -> execMMCommand "me" ("https://cdn.discordapp.com/attachments/477154651968372737/694488330406199296/pJyZoqKamKWarqQ.png (救我)")
 
   , Cmd "notify-prefs" "Edit the current channel's notification preferences" NoArg $ \_ ->
           enterEditNotifyPrefsMode
